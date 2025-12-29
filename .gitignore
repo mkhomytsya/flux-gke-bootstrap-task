@@ -3,6 +3,7 @@
 bootstrap/.terraform.lock.hcl
 bootstrap/kind-cluster-config
 bootstrap/kubeconfig
+bootstrap-gke/.terraform.lock.hcl
 
 # .tfstate files
 *.tfstate

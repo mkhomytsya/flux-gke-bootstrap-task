@@ -1,0 +1,29 @@
+# Terraform files
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+.terraform.lock.hcl
+terraform.tfvars
+
+# Kubeconfig
+kubeconfig
+*.kubeconfig
+
+# SSH Keys
+*.pem
+*.pub
+
+# Secrets
+secrets/
+*.secret
+
+# Crash logs
+crash.log
+
+# Override files
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json

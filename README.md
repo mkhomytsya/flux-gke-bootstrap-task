@@ -1,8 +1,17 @@
 # Flux CD GitOps Bootstrap Project
 
-This project automates the deployment of a Kubernetes cluster (KinD) and bootstraps it with Flux CD using Terraform modules.
+This project automates the deployment of Kubernetes clusters and bootstraps them with Flux CD using Terraform modules.
+
+## Available Configurations
+
+- **KinD (Kubernetes in Docker)** - Local development cluster (in `bootstrap/` directory)
+- **GKE (Google Kubernetes Engine)** - Production-ready GKE cluster (in `bootstrap-gke/` directory)
+
+Choose the configuration that fits your needs.
 
 ## Quick Start
+
+### For KinD (Local Development)
 
 1. **Install Tools**:
    ```bash
@@ -18,6 +27,29 @@ This project automates the deployment of a Kubernetes cluster (KinD) and bootstr
    To clean up temporary files and configs:
    ```bash
    make clean
+   ```
+
+### For GKE (Production)
+
+See detailed instructions in [bootstrap-gke/README.md](bootstrap-gke/README.md)
+
+**Quick commands:**
+
+1. **Setup GCP and Deploy**:
+   ```bash
+   # Check GCP setup
+   make -f Makefile.gke gcp-check
+   
+   # Enable GCP APIs
+   make -f Makefile.gke gcp-setup
+   
+   # Full bootstrap (interactive)
+   make -f Makefile.gke bootstrap-gke
+   ```
+
+2. **Cleanup**:
+   ```bash
+   make -f Makefile.gke destroy-gke
    ```
 
 ## SSH Key Management

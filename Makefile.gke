@@ -1,0 +1,115 @@
+# Makefile для GKE Bootstrap з Flux
+TF_DIR = bootstrap-gke
+
+.PHONY: help gcp-check gcp-setup vars-gke init-gke plan-gke apply-gke destroy-gke clean-gke kubeconfig-gke
+
+help:
+	@echo "Доступні команди для GKE:"
+	@echo "  gcp-check       - Перевірити GCP CLI та автентифікацію"
+	@echo "  gcp-setup       - Налаштувати GCP проект (увімкнути API)"
+	@echo "  vars-gke        - Налаштувати змінні для GKE"
+	@echo "  init-gke        - Ініціалізувати Terraform"
+	@echo "  plan-gke        - Переглянути план розгортання"
+	@echo "  apply-gke       - Розгорнути GKE кластер з Flux"
+	@echo "  kubeconfig-gke  - Отримати kubeconfig для GKE кластера"
+	@echo "  destroy-gke     - Видалити всі GKE ресурси"
+	@echo "  clean-gke       - Видалити тимчасові файли"
+
+gcp-check:
+	@echo "Перевірка GCP CLI..."
+	@command -v gcloud >/dev/null 2>&1 || { echo "gcloud CLI не знайдено. Встановіть: https://cloud.google.com/sdk/docs/install"; exit 1; }
+	@echo "GCP CLI знайдено: $$(gcloud --version | head -n1)"
+	@echo ""
+	@echo "Поточний проект:"
+	@gcloud config get-value project 2>/dev/null || echo "Проект не налаштовано"
+	@echo ""
+	@echo "Поточний користувач:"
+	@gcloud config get-value account 2>/dev/null || echo "Не авторизовано"
+	@echo ""
+	@read -p "Бажаєте авторизуватись? (y/N): " auth; \
+	if [ "$$auth" = "y" ]; then \
+		gcloud auth application-default login; \
+	fi
+
+gcp-setup:
+	@echo "Налаштування GCP проекту..."
+	@read -p "Введіть GCP Project ID: " project_id; \
+	gcloud config set project $$project_id; \
+	echo ""; \
+	echo "Увімкнення необхідних API..."; \
+	gcloud services enable container.googleapis.com; \
+	gcloud services enable compute.googleapis.com; \
+	gcloud services enable servicenetworking.googleapis.com; \
+	gcloud services enable cloudresourcemanager.googleapis.com; \
+	echo "GCP проект налаштовано."
+
+vars-gke:
+	@echo "Налаштування змінних для GKE..."
+	@read -p "Enter GCP Project ID: " project_id; \
+	 read -p "Enter GCP Region [us-central1-c]: " region; \
+	 region=$${region:-us-central1-c}; \
+	 read -p "Enter number of GKE nodes [2]: " num_nodes; \
+	 num_nodes=$${num_nodes:-2}; \
+	 read -p "Enter GitHub Organization/User: " github_org; \
+	 read -p "Enter GitHub Repository Name: " github_repo; \
+	 read -p "Enter GitHub Token: " github_token; \
+	 echo ""; \
+	 echo "# GCP Configuration" > $(TF_DIR)/terraform.tfvars; \
+	 echo "project_id    = \"$$project_id\"" >> $(TF_DIR)/terraform.tfvars; \
+	 echo "region        = \"$$region\"" >> $(TF_DIR)/terraform.tfvars; \
+	 echo "gke_num_nodes = $$num_nodes" >> $(TF_DIR)/terraform.tfvars; \
+	 echo "" >> $(TF_DIR)/terraform.tfvars; \
+	 echo "# GitHub Configuration" >> $(TF_DIR)/terraform.tfvars; \
+	 echo "github_org        = \"$$github_org\"" >> $(TF_DIR)/terraform.tfvars; \
+	 echo "github_repository = \"$$github_repo\"" >> $(TF_DIR)/terraform.tfvars; \
+	 echo "github_token      = \"$$github_token\"" >> $(TF_DIR)/terraform.tfvars; \
+	 echo "Файл $(TF_DIR)/terraform.tfvars створено."
+
+init-gke:
+	@echo "Ініціалізація Terraform для GKE..."
+	@cd $(TF_DIR) && terraform init
+
+plan-gke:
+	@echo "Перегляд плану розгортання..."
+	@cd $(TF_DIR) && terraform plan
+
+apply-gke:
+	@echo "Розгортання GKE кластера з Flux..."
+	@cd $(TF_DIR) && terraform apply
+	@echo ""
+	@echo "Розгортання завершено!"
+	@echo "Щоб отримати доступ до кластера, виконайте:"
+	@echo "  make kubeconfig-gke"
+
+kubeconfig-gke:
+	@echo "Отримання kubeconfig..."
+	@cd $(TF_DIR) && terraform output -raw kubeconfig_command | sh
+	@echo ""
+	@echo "Перевірка підключення:"
+	@kubectl get nodes
+	@echo ""
+	@echo "Перевірка Flux:"
+	@flux check || echo "Встановіть Flux CLI: curl -s https://fluxcd.io/install.sh | bash"
+
+destroy-gke:
+	@echo "УВАГА! Це видалить GKE кластер та всі ресурси."
+	@read -p "Ви впевнені? (yes/NO): " confirm; \
+	if [ "$$confirm" = "yes" ]; then \
+		cd $(TF_DIR) && terraform destroy; \
+		echo "Ресурси видалено."; \
+	else \
+		echo "Скасовано."; \
+	fi
+
+clean-gke:
+	@echo "Очищення тимчасових файлів..."
+	@rm -rf $(TF_DIR)/.terraform
+	@rm -f $(TF_DIR)/.terraform.lock.hcl
+	@rm -f $(TF_DIR)/terraform.tfstate*
+	@rm -f $(TF_DIR)/*.pem
+	@rm -f $(TF_DIR)/*.pub
+	@echo "Тимчасові файли видалено."
+
+# Повний цикл bootstrap для GKE
+bootstrap-gke: gcp-check init-gke vars-gke apply-gke kubeconfig-gke
+	@echo "GKE bootstrap завершено успішно!"
