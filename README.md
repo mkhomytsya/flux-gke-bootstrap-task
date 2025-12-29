@@ -31,8 +31,6 @@ Choose the configuration that fits your needs.
 
 ### For GKE (Production)
 
-See detailed instructions in [bootstrap-gke/README.md](bootstrap-gke/README.md)
-
 **Quick commands:**
 
 1. **Setup GCP and Deploy**:
