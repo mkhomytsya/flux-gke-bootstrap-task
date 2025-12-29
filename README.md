@@ -6,4 +6,4 @@ This project automates the deployment of a Kubernetes cluster (KinD) and bootstr
 
 1. **Install Tools**:
    ```bash
-   make install
+   make bootstrap

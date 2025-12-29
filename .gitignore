@@ -1,5 +1,8 @@
 # Local .terraform directories
 **/.terraform/*
+bootstrap/.terraform.lock.hcl
+bootstrap/kind-cluster-config
+bootstrap/kubeconfig
 
 # .tfstate files
 *.tfstate

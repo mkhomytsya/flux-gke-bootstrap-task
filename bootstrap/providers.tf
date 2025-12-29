@@ -13,6 +13,10 @@ terraform {
       source  = "tehcyx/kind"
       version = ">= 0.8"
     }
+    local = {
+      source  = "hashicorp/local"
+      version = ">= 2.5"
+    }
   }
 }
 
@@ -27,7 +31,7 @@ provider "kind" {}
 
 provider "kubernetes" {
   host                   = module.kind_cluster.endpoint
-  client_certificate     = module.kind_cluster.client_certificate
+  client_certificate     = module.kind_cluster.crt
   client_key             = module.kind_cluster.client_key
-  cluster_ca_certificate = module.kind_cluster.cluster_ca_certificate
+  cluster_ca_certificate = module.kind_cluster.ca
 }
