@@ -1,6 +1,15 @@
 # 1. Кластер
-module "kind_cluster" {
-  source = "github.com/den-vasyliev/tf-kind-cluster"
+resource "kind_cluster" "this" {
+  name           = "kind-cluster"
+  wait_for_ready = true
+}
+
+# Створюємо kubeconfig файл для Flux
+resource "local_file" "kubeconfig" {
+  content              = kind_cluster.this.kubeconfig
+  filename             = "${path.module}/kind-cluster-config"
+  file_permission      = "0600"
+  directory_permission = "0700"
 }
 
 # 2. SSH ключі для Flux
@@ -23,7 +32,20 @@ module "flux_bootstrap" {
   source            = "github.com/den-vasyliev/tf-fluxcd-flux-bootstrap"
   github_repository = "${var.github_org}/${var.github_repository}"
   private_key       = module.tls_keys.private_key_pem
-  config_path       = "${path.module}/kind-cluster-config"
+  config_path       = local_file.kubeconfig.filename
   target_path       = "clusters/my-cluster"
   github_token      = var.github_token
+}
+
+# ==========================================
+# Bootstrap Envoy Gateway
+# ==========================================
+resource "helm_release" "envoy_gateway" {
+  depends_on       = [module.flux_bootstrap]
+  name             = "eg"
+  namespace        = "envoy-gateway-system"
+  repository       = "oci://docker.io/envoyproxy"
+  chart            = "gateway-helm"
+  version          = "v1.3.2"
+  create_namespace = true
 }

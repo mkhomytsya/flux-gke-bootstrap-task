@@ -37,4 +37,17 @@ This will taint the TLS private key resource, forcing Terraform to generate a ne
 
 ## Troubleshooting
 
-For other issues, refer to the Makefile help: `make help`
+### Repository Already Exists Error
+
+If you encounter: "Repository creation failed... name already exists on this account"
+
+The GitHub repository from a previous deployment still exists. You have two options:
+1. **Use a different repository name:** Run `make clean` and `make bootstrap` with a new GitHub repository name.
+2. **Delete the old repository:** Manually delete the old repository from GitHub, then re-run `make apply`.
+
+You can also update the repository name in `bootstrap/terraform.tfvars`:
+```bash
+# Edit this file and change github_repository to a new name
+nano bootstrap/terraform.tfvars
+make apply
+```

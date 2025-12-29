@@ -17,6 +17,10 @@ terraform {
       source  = "hashicorp/local"
       version = ">= 2.5"
     }
+    helm = {
+      source  = "hashicorp/helm"
+      version = ">= 2.12"
+    }
   }
 }
 
@@ -30,8 +34,17 @@ provider "github" {
 provider "kind" {}
 
 provider "kubernetes" {
-  host                   = module.kind_cluster.endpoint
-  client_certificate     = module.kind_cluster.crt
-  client_key             = module.kind_cluster.client_key
-  cluster_ca_certificate = module.kind_cluster.ca
+  host                   = kind_cluster.this.endpoint
+  client_certificate     = kind_cluster.this.client_certificate
+  client_key             = kind_cluster.this.client_key
+  cluster_ca_certificate = kind_cluster.this.cluster_ca_certificate
+}
+
+provider "helm" {
+  kubernetes = {
+    host                   = kind_cluster.this.endpoint
+    client_certificate     = kind_cluster.this.client_certificate
+    client_key             = kind_cluster.this.client_key
+    cluster_ca_certificate = kind_cluster.this.cluster_ca_certificate
+  }
 }
