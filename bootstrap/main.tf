@@ -1,23 +1,39 @@
-# 1. Кластер
-resource "kind_cluster" "this" {
-  name           = "kind-cluster"
-  wait_for_ready = true
+
+module "kind_cluster" {
+  source = "github.com/den-vasyliev/tf-kind-cluster"
 }
 
-# Створюємо kubeconfig файл для Flux
 resource "local_file" "kubeconfig" {
-  content              = kind_cluster.this.kubeconfig
+  content              = <<EOF
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority-data: ${base64encode(module.kind_cluster.ca)}
+    server: ${module.kind_cluster.endpoint}
+  name: kind
+contexts:
+- context:
+    cluster: kind
+    user: kind
+  name: kind
+current-context: kind
+kind: Config
+preferences: {}
+users:
+- name: kind
+  user:
+    client-certificate-data: ${base64encode(module.kind_cluster.crt)}
+    client-key-data: ${base64encode(module.kind_cluster.client_key)}
+EOF
   filename             = "${path.module}/kind-cluster-config"
   file_permission      = "0600"
   directory_permission = "0700"
 }
 
-# 2. SSH ключі для Flux
 module "tls_keys" {
   source = "github.com/den-vasyliev/tf-hashicorp-tls-keys"
 }
 
-# 3. Репозиторій GitHub
 module "github_repository" {
   source                   = "github.com/den-vasyliev/tf-github-repository"
   github_owner             = var.github_org
@@ -27,7 +43,6 @@ module "github_repository" {
   public_key_openssh_title = "flux-ssh-key"
 }
 
-# 4. Flux Bootstrap
 module "flux_bootstrap" {
   source            = "github.com/den-vasyliev/tf-fluxcd-flux-bootstrap"
   github_repository = "${var.github_org}/${var.github_repository}"
@@ -37,9 +52,6 @@ module "flux_bootstrap" {
   github_token      = var.github_token
 }
 
-# ==========================================
-# Bootstrap Envoy Gateway
-# ==========================================
 resource "helm_release" "envoy_gateway" {
   depends_on       = [module.flux_bootstrap]
   name             = "eg"
